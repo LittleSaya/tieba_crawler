@@ -37,10 +37,10 @@ function isInt(val) {
  * @param {object} val
  * @returns {boolean}
  */
-function isEmptyObject(val) {
+function isEmpty(val) {
   if (val instanceof Array) {
     return val.length == 0;
-  } else if (val instanceof Object) {
+  } else if (val instanceof Object || typeof val == 'object') {
     // 成员计数
     var cnt = 0;
     for (i in val) {
@@ -51,11 +51,21 @@ function isEmptyObject(val) {
 }
 
 /**
+ * 判断参数是否为一个对象
+ * @param {any} val
+ * @returns {boolean}
+ */
+function isObject(val) {
+  return typeof val == 'object' || val instanceof Object;
+}
+
+/**
  * 用于处理各种参数的工具模块
  */
 module.exports = {
   isInt: isInt,
   isNumber: isNumber,
   isString: isString,
-  isEmptyObject: isEmptyObject
+  isEmpty: isEmpty,
+  isObject: isObject
 }

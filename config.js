@@ -1,4 +1,3 @@
-const constant = require('./constant');
 const cookie = require('./cookie');
 
 /**
@@ -23,19 +22,5 @@ module.exports = {
 
         // 请求失败时的重试次数
         retryTimes: 3,
-    },
-
-    // 命令行的默认配置
-    command: {
-        target: constant.command.value.target.threadListWithContent,
-        threadListPageStart: 0,
-        threadListPageEnd: Infinity,
-        postListPageStart: 0,
-        postListPageEnd: Infinity,
-        commentListPageStart: 0,
-        commentListPageEnd: Infinity,
-
-        // 默认生成 log 文件
-        outputTarget: constant.command.value.outputTarget.log
     }
 };
