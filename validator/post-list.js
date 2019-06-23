@@ -11,16 +11,16 @@ const parseDataField = require('../util/parse-data-field');
  */
 module.exports = function(text) {
   // 零、使用正则表达式解析当前页码和总页数
-  let curPage = null;
-  let totalPage = null;
+  let currentPageNo = null;
+  let lastPageNo = null;
   let regPager = /PageData\.pager\s*=\s*\{\s*"cur_page"\s*:\s*(\d+)\s*,\s*"total_page"\s*:\s*(\d+)\s*\}/i;
   if (!regPager.test(text)) {
     // 如果无法解析页码信息，返回验证失败
     logger.info('validator/post-list: fail to parse PageData');
     return null;
   } else {
-    curPage = parseInt(RegExp.$1);
-    totalPage = parseInt(RegExp.$2);
+    currentPageNo = parseInt(RegExp.$1) - 1;
+    lastPageNo = parseInt(RegExp.$2) - 1;
   }
 
   // 一、对跟帖列表页面进行解析
@@ -63,8 +63,8 @@ module.exports = function(text) {
           commentNum: dataField.content.comment_num,
 
           // 跟帖的所属页码与总页数
-          pageNo: curPage,
-          totalPage: totalPage
+          currentPageNo: currentPageNo,
+          lastPageNo: lastPageNo
         };
       } else if (currentKey && name == 'span' && attribs.class && attribs.class.trim() == 'tail-info') {
         // 打开回帖时间开关

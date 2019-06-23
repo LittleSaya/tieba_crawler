@@ -72,11 +72,16 @@ module.exports = function(text) {
   let lastReplyTimeSwitch = false;
   // 在解析主题帖信息时是否发生错误
   let isErrorThreadInfo = false;
+
+  // 页码
+  let currentPageNo = null,
+      lastPageNo = null;
+  let currentPageNoSwitch = false;
   
   // 创建 inner parser 对主题帖列表文本进行解析
   let innerParser = new htmlparser2.Parser({
     onopentag: (name, attribs) => {
-      if (name == 'li' && attribs.class && attribs.class.trim() == 'j_thread_list clearfix') {
+      if (name == 'li' && attribs.class && (attribs.class.trim() == 'j_thread_list clearfix' || attribs.class.trim() == 'j_thread_list thread_top j_thread_list clearfix')) {
         // 主题贴信息以json串的形式存在于该<li>标签的data-field属性内
         let dataField = parseDataField(attribs['data-field']);
 
@@ -109,19 +114,33 @@ module.exports = function(text) {
       } else if (currentKey && name == 'span' && attribs.class && attribs.class.trim() == 'threadlist_reply_date pull_right j_reply_data') {
         // 最后回复时间，打开开关，下一次 ontext 读取的便是最后回复时间
         lastReplyTimeSwitch = true;
+      } else if (name == 'span' && attribs.class && attribs.class.trim() == 'pagination-current pagination-item') {
+        // 当前页
+        currentPageNoSwitch = true;
+      } else if (name = 'a' && attribs.class && attribs.class.trim() == 'last pagination-item') {
+        // 尾页
+        try {
+          let href = new URL('https:' + attribs.href);
+          lastPageNo = parseInt(href.searchParams.get('pn')) / 50;
+        } catch (err) {
+          logger.info('validator/thread-list: fail to parse lastPageNo, err = ' + err);
+          lastPageNo = null;
+        }
       }
     },
     ontext: (data) => {
       if (createTimeSwitch) {
         // 读取创建时间
         threadList[currentKey].createTime = data.trim();
-        // 读取完毕后关闭开关
         createTimeSwitch = false;
       } else if (lastReplyTimeSwitch) {
         // 读取最后回复时间
         threadList[currentKey].lastReplyTime = data.trim();
-        // 关闭开关
         lastReplyTimeSwitch = false;
+      } else if (currentPageNoSwitch) {
+        // 当前页
+        currentPageNo = parseInt(data.trim()) - 1;
+        currentPageNoSwitch = false;
       }
     },
     onerror: (error) => {
@@ -138,6 +157,18 @@ module.exports = function(text) {
     // 如果在解析主题帖信息时发生错误，则返回验证失败
     logger.info('validator/thread-list: isErrorThreadInfo = ' + isErrorThreadInfo);
     return null;
+  }
+
+  if (currentPageNo == null || lastPageNo == null) {
+    // 如果未能获取页码，则返回验证失败
+    logger.info('validator/thread-list: fail to get page info, currentPageNo = ' + currentPageNo + ', lastPageNo = ' + lastPageNo);
+    return null;
+  } else {
+    // 设置页码
+    for (let k in threadList) {
+      threadList[k].currentPageNo = currentPageNo;
+      threadList[k].lastPageNo = lastPageNo;
+    }
   }
 
   return threadList;

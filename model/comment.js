@@ -38,7 +38,7 @@ Comment.init({
     type: Sequelize.STRING,
     allowNull: false,
     field: 'create_time',
-    comment: '创建时间'
+    comment: '创建时间，格式：yyyy-mm-dd hh:mm'
   },
   seq: {
     type: Sequelize.BIGINT,
@@ -57,6 +57,12 @@ Comment.init({
     allowNull: false,
     field: 'thread_id',
     comment: '主题帖ID'
+  },
+  forumId: {
+    type: Sequelize.BIGINT,
+    allowNull: false,
+    field: 'forum_id',
+    comment: '贴吧ID'
   }
 }, {
   sequelize,

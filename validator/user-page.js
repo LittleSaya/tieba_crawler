@@ -1,4 +1,5 @@
 const logger = require('../util/logger');
+const htmlparser2 = require('htmlparser2');
 
 /**
  * user page validator
@@ -10,6 +11,8 @@ const logger = require('../util/logger');
 module.exports = function(text) {
   // 用户 ID
   let userId = null;
+  let userName = null;
+  let userNickname = null;
 
   // 正则表达式
   let regUserId = /data\-user\-id="(\d+)"/i;

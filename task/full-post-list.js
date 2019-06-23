@@ -5,6 +5,7 @@ const postListDownloader = require('../downloader/post-list');
 const postListValidator = require('../validator/post-list');
 const TRUE = require('../constant').stringBoolean.TRUE;
 const Op = require('sequelize').Op;
+const User = require('../model/user');
 
 /**
  * task 内部的代码都是同步的
@@ -14,7 +15,12 @@ const Op = require('sequelize').Op;
  * @param {number} forumId
  * @param {number} dbPageNo 数据库内的分页，从0开始
  * @param {number=0} [lastThreadId=0] 主题帖ID下限（只更新大于lastThreadId的主题帖的更贴）
- * @returns {number} 返回更新的跟帖数量
+ * 
+ * @typedef {object} Ret
+ * @property {number} cnt 获取的数据数量，值为 0 时表示该页无数据或数据无效
+ * @property {number} data 本次执行涉及的最大 threadId
+ * @returns {Ret}
+ * 
  * @throws {Error} 当下载失败时抛出异常，当解析失败时抛出异常，当数据库请求出错时抛出异常
  */
 module.exports = async function(forumId, dbPageNo, lastThreadId) {
@@ -55,12 +61,20 @@ module.exports = async function(forumId, dbPageNo, lastThreadId) {
 
   // 统计一共插入了多少条新的 post
   let postCount = 0;
+  let maxThreadId = -1;
 
   for (let thread of threadList) {
     let threadFinished = false;
     let postListPageNo = 0;
+
+    // 获取最大的 threadId
+    let threadId = thread.get('threadId');
+    if (threadId > maxThreadId) {
+      maxThreadId = threadId;
+    }
+
     while (!threadFinished) {
-      let html = await postListDownloader(thread.get('threadId'), postListPageNo);
+      let html = await postListDownloader(threadId, postListPageNo);
 
       let postList = postListValidator(html);
 
@@ -75,31 +89,41 @@ module.exports = async function(forumId, dbPageNo, lastThreadId) {
         continue;
       }
 
-      let isLastPage = false;
+      // 如果已经超过最后一页，则结束主题帖
+      for (let i in postList) {
+        if (postList[i].currentPageNo > postList[i].lastPageNo) {
+          threadFinished = true;
+          break;
+        }
+      }
+      if (threadFinished) {
+        continue;
+      }
 
       for (let i in postList) {
         let post = postList[i];
 
-        if (post.pageNo == post.totalPage) {
-          // 是否抵达最后一页
-          threadFinished = true;
-        }
-
         post.childrenOutOfDate = TRUE;
-        let success = null;
         try {
-          success = await Post.upsert(post);
+          await Post.upsert(post);
         } catch (err) {
           // 数据库请求出错
           throw Error('task/full-post-list: Post.upsert failed, err = ' + err + ', object = ' + JSON.stringify(post));
         }
 
-        // if (success) {
-        //   ++postCount;
-        // } else {
-        //   // 数据库请求出错，但 sequelize 未抛出异常
-        //   throw Error('task/full-post-list: Post.upsert failed, object = ' + JSON.stringify(post) + ', typeof success = ' + typeof success);
-        // }
+        // 更新用户数据
+        let user = {
+          userId: post.authorId,
+          userName: post.authorName,
+          userNickname: post.authorNickname
+        };
+        try {
+          await User.upsert(user);
+        } catch (err) {
+          // 数据库请求出错
+          throw Error('task/full-post-list: User.upsert failed, err = ' + err + ', object = ' + JSON.stringify(user));
+        }
+        
         ++postCount;
       }
 
@@ -107,5 +131,8 @@ module.exports = async function(forumId, dbPageNo, lastThreadId) {
     }
   }
 
-  return postCount;
+  return {
+    cnt: postCount,
+    data: maxThreadId
+  };
 }

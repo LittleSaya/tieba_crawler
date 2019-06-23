@@ -38,7 +38,7 @@ Post.init({
     type: Sequelize.STRING(255),
     allowNull: false,
     field: 'create_time',
-    comment: '创建时间'
+    comment: '创建时间，格式：yyyy-mm-dd hh:mm'
   },
   postNo: {
     type: Sequelize.BIGINT,

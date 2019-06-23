@@ -8,7 +8,8 @@ const sequelize = new Sequelize('mini_tieba', 'root', 'L5JXQ,m@YpA*gzJ*', {
     min: 0,
     acquire: 30000,
     idle: 10000
-  }
+  },
+  logging: false
 });
 
 module.exports = sequelize;
