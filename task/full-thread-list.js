@@ -35,8 +35,8 @@ module.exports = async function(tieba, pageNo) {
   for (let i in threadList) {
     let thread = threadList[i];
 
-    // 如果当前页大于尾页，则直接退出
-    if (pageNo > thread.lastPageNo) {
+    // 如果当前页大于尾页或没有当前页，则直接退出
+    if (!paramUtil.isNumber(thread.currentPageNo) || pageNo > thread.lastPageNo) {
       break;
     }
 

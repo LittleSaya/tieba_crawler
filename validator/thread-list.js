@@ -13,7 +13,7 @@ const forumInfoValidator = require('./forum-info');
 module.exports = function(text) {
   let forumInfo = forumInfoValidator(text);
   if (!forumInfo) {
-    logger('validator/thread-list: fail to find forum info');
+    logger.info('validator/thread-list: fail to find forum info');
     return null;
   }
   let forumId = forumInfo.forumId;
@@ -57,6 +57,7 @@ module.exports = function(text) {
 
   if (threadListText == null || isErrorThreadListText) {
     // 如果主题帖列表的文本为空或出现错误，则返回验证失败
+    logger.info('validator/thread-list: fail to get thread list text, typeof threadListText = ' + typeof threadListText);
     return null;
   }
 
@@ -84,6 +85,12 @@ module.exports = function(text) {
       if (name == 'li' && attribs.class && (attribs.class.trim() == 'j_thread_list clearfix' || attribs.class.trim() == 'j_thread_list thread_top j_thread_list clearfix')) {
         // 主题贴信息以json串的形式存在于该<li>标签的data-field属性内
         let dataField = parseDataField(attribs['data-field']);
+
+        // 一些没有吧主的贴吧会有一条特殊的置顶贴，其标题为“本吧吧主火热招募中，点击参加”，并且没有作者
+        // 跳过这种“主题帖”
+        if (!dataField.author_name) {
+          return;
+        }
 
         // 标记为当前主题帖
         currentKey = dataField.id.toString();
@@ -159,7 +166,16 @@ module.exports = function(text) {
     return null;
   }
 
-  if (currentPageNo == null || lastPageNo == null) {
+  // 关于页码，允许两种情况发生：
+  // 1. 没有当前页，但是有尾页（ pn 参数大于最后一页）
+  // 不做处理
+
+  // 2. 有当前页，没有尾页（ pn 参数刚好是最后一页）
+  if (currentPageNo != null && lastPageNo == null) {
+    lastPageNo = currentPageNo;
+  }
+
+  if (lastPageNo == null) {
     // 如果未能获取页码，则返回验证失败
     logger.info('validator/thread-list: fail to get page info, currentPageNo = ' + currentPageNo + ', lastPageNo = ' + lastPageNo);
     return null;
