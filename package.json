@@ -12,7 +12,7 @@
     "axios": "^0.18.0",
     "htmlparser2": "^3.10.1",
     "mysql2": "^1.6.5",
-    "sequelize": "^5.8.7",
+    "sequelize": "^5.15.1",
     "winston": "^3.2.1"
   }
 }
